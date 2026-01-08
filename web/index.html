@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字幕核对工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部标题栏 -->
+        <header class="header">
+            <h1>字幕核对工具</h1>
+            <p class="subtitle">支持 TXT 和 Word 文件比对，自动高亮显示差异</p>
+        </header>
+
+        <!-- 文件加载区域 -->
+        <div class="file-controls">
+            <div class="file-control-group">
+                <label class="file-label">文件 1:</label>
+                <div class="file-input-group">
+                    <input type="text" id="file1-path" class="file-path-input" readonly placeholder="选择文件 1 (TXT 或 Word)">
+                    <button class="btn btn-primary" onclick="selectFile(1)">选择文件</button>
+                    <button class="btn btn-success" id="compare-btn" onclick="performCompare()">开始比对</button>
+                </div>
+            </div>
+            
+            <div class="file-control-group">
+                <label class="file-label">文件 2:</label>
+                <div class="file-input-group">
+                    <input type="text" id="file2-path" class="file-path-input" readonly placeholder="选择文件 2 (TXT 或 Word)">
+                    <button class="btn btn-primary" onclick="selectFile(2)">选择文件</button>
+                    <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 比对选项 -->
+        <div class="compare-options">
+            <label class="checkbox-label">
+                <input type="checkbox" id="ignore-punctuation" checked>
+                忽略标点符号和空格（Word 文件比对时自动启用）
+            </label>
+        </div>
+
+        <!-- 状态信息栏 -->
+        <div class="status-bar" id="status-bar">
+            <span id="status-text">请选择要比对的文件</span>
+        </div>
+
+        <!-- 内容显示区域 -->
+        <div class="content-area">
+            <!-- 左侧文件内容 -->
+            <div class="file-panel">
+                <div class="panel-header">
+                    <h3>文件 1 内容</h3>
+                    <span class="file-name" id="file1-name">未加载</span>
+                </div>
+                <div class="editor-container" id="editor-container1" onscroll="syncScroll(1)">
+                    <div
+                        id="editor1"
+                        class="editor"
+                        contenteditable="true"
+                        spellcheck="false"
+                        oninput="onEditorInput(1)"
+                    ></div>
+                </div>
+            </div>
+
+            <!-- 右侧文件内容 -->
+            <div class="file-panel">
+                <div class="panel-header">
+                    <h3>文件 2 内容</h3>
+                    <span class="file-name" id="file2-name">未加载</span>
+                </div>
+                <div class="editor-container" id="editor-container2" onscroll="syncScroll(2)">
+                    <div
+                        id="editor2"
+                        class="editor"
+                        contenteditable="true"
+                        spellcheck="false"
+                        oninput="onEditorInput(2)"
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 隐藏的文件选择输入 -->
+    <input type="file" id="file-input" style="display: none;" accept=".txt,.docx" onchange="handleFileSelect(event)">
+
+    <!-- 引入 Eel 和主脚本 -->
+    <script type="text/javascript" src="/eel.js"></script>
+    <script src="js/main.js"></script>
+<div class="right-bottom-fixed">@xujzmd  V1.0</div>
+</body>
+</html>
