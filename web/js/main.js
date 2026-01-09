@@ -371,3 +371,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// 页面卸载前的清理
+window.addEventListener('beforeunload', function() {
+    // 清理前端资源
+    currentFile1 = null;
+    currentFile2 = null;
+    
+    // 清除定时器
+    if (window.autoCompareTimeout) {
+        clearTimeout(window.autoCompareTimeout);
+    }
+    
+    // 清理所有事件监听器
+    const editors = document.querySelectorAll('.editor');
+    editors.forEach(editor => {
+        editor.oninput = null;
+        editor.onscroll = null;
+    });
+});
+
+// 页面卸载时的清理
+window.addEventListener('unload', function() {
+    // 确保所有资源被释放
+    currentFile1 = null;
+    currentFile2 = null;
+    
+    if (window.autoCompareTimeout) {
+        clearTimeout(window.autoCompareTimeout);
+    }
+});
