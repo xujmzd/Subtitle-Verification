@@ -15,7 +15,7 @@ args = [
     '--onefile',                  # 打包成单个可执行文件
     '--windowed',                 # Windows: 不显示控制台窗口
     '--noconsole',                # 不显示控制台（Windows）
-    '--icon=NONE',                # 图标文件路径（如果有）
+    '--icon=icon.ico',                # 图标文件路径（如果有）
     '--add-data=web;web',         # 包含 web 目录（Windows 使用分号）
     '--add-data=app;app',         # 包含 app 目录
     '--hidden-import=eel',        # 明确导入 eel
@@ -27,5 +27,6 @@ args = [
 # 如果是 Linux/Mac，修改 add-data 的分隔符
 if sys.platform != 'win32':
     args = [arg.replace(';', ':') if '--add-data' in arg else arg for arg in args]
+
 
 PyInstaller.__main__.run(args)
