@@ -253,7 +253,7 @@ body {
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
 }
 
 .editor:focus {
@@ -411,3 +411,4 @@ body {
     background: #667eea;
     color: white;
 }
+
