@@ -6,6 +6,8 @@
 import eel
 import os
 import sys
+import atexit
+import signal
 from pathlib import Path
 
 # 导入自定义模块
@@ -29,6 +31,74 @@ current_files = {
         'normalized': ''
     }
 }
+
+
+def cleanup_resources():
+    """
+    清理所有资源：释放内存、关闭连接
+    
+    这个函数会在程序退出时被调用，确保所有资源都被正确释放
+    """
+    global current_files
+    
+    try:
+        # 1. 清理全局变量，释放内存
+        current_files['file1'] = {
+            'path': None,
+            'original': '',
+            'normalized': ''
+        }
+        current_files['file2'] = {
+            'path': None,
+            'original': '',
+            'normalized': ''
+        }
+        
+        # 2. 强制垃圾回收
+        import gc
+        gc.collect()
+        
+        print('资源已清理')
+        
+    except Exception as e:
+        print(f'清理资源时出错: {e}')
+    finally:
+        # 3. 强制退出进程
+        try:
+            os._exit(0)  # 使用 os._exit 强制退出，不执行清理钩子
+        except:
+            try:
+                sys.exit(0)
+            except:
+                pass
+
+
+def close_callback(path, sockets):
+    """
+    Eel 关闭回调函数
+    当浏览器窗口关闭时调用
+    """
+    print('应用窗口已关闭，正在清理资源...')
+    cleanup_resources()
+
+
+def signal_handler(signum, frame):
+    """
+    信号处理器（用于 Ctrl+C 等）
+    """
+    print('\n收到退出信号，正在清理资源...')
+    cleanup_resources()
+
+
+# 注册退出时的清理函数
+atexit.register(cleanup_resources)
+
+# 注册信号处理器
+try:
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+except:
+    pass
 
 
 @eel.expose
@@ -320,7 +390,7 @@ def main():
     """
     # 启动 Eel 应用
     # start() 方法会启动一个本地 Web 服务器并打开浏览器
-    # mode='chrome-app' 表示以 Chrome 应用模式运行（桌面应用）
+    # mode='chrome' 表示以 Chrome 应用模式运行（桌面应用）
     # size=(1400, 900) 设置窗口大小
     # port=0 表示自动选择可用端口
     try:
@@ -328,10 +398,19 @@ def main():
                  mode='chrome',  # 使用 Chrome 浏览器
                  size=(1400, 900),
                  port=0,
-                 close_callback=lambda path, sockets: print('应用已关闭'))
-    except (SystemExit, MemoryError, KeyboardInterrupt):
-        # 正常关闭或错误退出
-        pass
+                 close_callback=close_callback)
+        
+    except KeyboardInterrupt:
+        print('\n用户中断，正在清理资源...')
+        cleanup_resources()
+    except SystemExit:
+        cleanup_resources()
+    except Exception as e:
+        print(f'应用启动错误: {e}')
+        cleanup_resources()
+    finally:
+        # 确保资源被清理
+        cleanup_resources()
 
 
 if __name__ == '__main__':
