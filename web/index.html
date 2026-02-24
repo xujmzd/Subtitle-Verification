@@ -56,7 +56,11 @@
                     <h3>文件 1 内容</h3>
                     <span class="file-name" id="file1-name">未加载</span>
                 </div>
-                <div class="editor-container" id="editor-container1" onscroll="syncScroll(1)">
+                <div class="editor-container" id="editor-container1" 
+                     onscroll="syncScroll(1)"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, 1)">
                     <div
                         id="editor1"
                         class="editor"
@@ -73,7 +77,11 @@
                     <h3>文件 2 内容</h3>
                     <span class="file-name" id="file2-name">未加载</span>
                 </div>
-                <div class="editor-container" id="editor-container2" onscroll="syncScroll(2)">
+                <div class="editor-container" id="editor-container2" 
+                     onscroll="syncScroll(2)"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, 2)">
                     <div
                         id="editor2"
                         class="editor"
