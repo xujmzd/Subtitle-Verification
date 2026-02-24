@@ -8,6 +8,7 @@ let currentFile1 = null;
 let currentFile2 = null;
 let isComparing = false;
 let scrollSyncEnabled = true;
+let isScrolling = false; // 用于防止滚动同步时的循环触发
 
 /**
  * 选择文件
@@ -290,7 +291,7 @@ function onEditorInput(fileIndex) {
  * @param {number} editorIndex - 编辑器索引 (1 或 2)
  */
 function syncScroll(editorIndex) {
-    if (!scrollSyncEnabled) {
+    if (!scrollSyncEnabled || isScrolling) {
         return;
     }
     
@@ -302,17 +303,30 @@ function syncScroll(editorIndex) {
         return;
     }
     
-    // 临时禁用滚动同步，避免循环
-    scrollSyncEnabled = false;
+    // 设置滚动标志，防止循环触发
+    isScrolling = true;
     
-    // 同步滚动位置
-    otherContainer.scrollTop = container.scrollTop;
+    // 计算滚动比例，确保两个容器内容高度不同时也能正确同步
+    const containerScrollHeight = container.scrollHeight - container.clientHeight;
+    const otherContainerScrollHeight = otherContainer.scrollHeight - otherContainer.clientHeight;
+    
+    if (containerScrollHeight > 0 && otherContainerScrollHeight > 0) {
+        // 计算滚动比例
+        const scrollRatio = container.scrollTop / containerScrollHeight;
+        // 应用到另一个容器
+        otherContainer.scrollTop = scrollRatio * otherContainerScrollHeight;
+    } else {
+        // 如果内容高度相同，直接同步
+        otherContainer.scrollTop = container.scrollTop;
+    }
+    
+    // 同步水平滚动
     otherContainer.scrollLeft = container.scrollLeft;
     
-    // 恢复滚动同步
-    setTimeout(() => {
-        scrollSyncEnabled = true;
-    }, 50);
+    // 恢复滚动同步标志
+    requestAnimationFrame(() => {
+        isScrolling = false;
+    });
 }
 
 /**
@@ -401,3 +415,122 @@ window.addEventListener('unload', function() {
         clearTimeout(window.autoCompareTimeout);
     }
 });
+
+/**
+ * 处理拖拽悬停事件
+ * @param {Event} event - 拖拽事件
+ */
+function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 检查是否是文件拖拽
+    if (event.dataTransfer.types.includes('Files')) {
+        event.dataTransfer.dropEffect = 'copy';
+        // 添加拖拽悬停样式
+        event.currentTarget.classList.add('drag-over');
+    }
+}
+
+/**
+ * 处理拖拽离开事件
+ * @param {Event} event - 拖拽事件
+ */
+function handleDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 移除拖拽悬停样式
+    event.currentTarget.classList.remove('drag-over');
+}
+
+/**
+ * 处理文件拖拽放置事件
+ * @param {Event} event - 拖拽事件
+ * @param {number} fileIndex - 文件索引 (1 或 2)
+ */
+async function handleDrop(event, fileIndex) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 移除拖拽悬停样式
+    event.currentTarget.classList.remove('drag-over');
+    
+    // 获取拖拽的文件
+    const files = event.dataTransfer.files;
+    
+    if (!files || files.length === 0) {
+        updateStatus('未检测到文件', 'error');
+        return;
+    }
+    
+    // 只处理第一个文件
+    const file = files[0];
+    
+    // 检查文件类型
+    const fileName = file.name;
+    const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+    
+    if (fileExtension !== '.txt' && fileExtension !== '.docx') {
+        updateStatus('不支持的文件格式，请拖拽 TXT 或 DOCX 文件', 'error');
+        return;
+    }
+    
+    updateStatus(`正在加载文件 ${fileIndex}...`, 'info');
+    
+    try {
+        // 使用 FileReader 读取文件
+        const reader = new FileReader();
+        
+        if (fileExtension === '.txt') {
+            // 文本文件使用文本方式读取
+            reader.onload = async function(e) {
+                try {
+                    const fileContent = e.target.result;
+                    // 将文本内容转换为 base64 编码
+                    const base64Content = btoa(unescape(encodeURIComponent(fileContent)));
+                    
+                    // 调用 Python 后端加载文件
+                    const result = await eel.load_file_from_content(fileName, base64Content, fileExtension, fileIndex)();
+                    
+                    handleFileLoadResult(result, fileIndex, fileName);
+                } catch (error) {
+                    updateStatus(`错误: ${error.message}`, 'error');
+                    console.error('加载文件错误:', error);
+                    alert(`加载文件时发生错误: ${error.message}`);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        } else {
+            // Word 文件使用二进制方式读取
+            reader.onload = async function(e) {
+                try {
+                    const arrayBuffer = e.target.result;
+                    // 将 ArrayBuffer 转换为 base64 编码
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const binary = String.fromCharCode.apply(null, bytes);
+                    const base64Content = btoa(binary);
+                    
+                    // 调用 Python 后端加载文件
+                    const result = await eel.load_file_from_content(fileName, base64Content, fileExtension, fileIndex)();
+                    
+                    handleFileLoadResult(result, fileIndex, fileName);
+                } catch (error) {
+                    updateStatus(`错误: ${error.message}`, 'error');
+                    console.error('加载文件错误:', error);
+                    alert(`加载文件时发生错误: ${error.message}`);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        reader.onerror = function() {
+            updateStatus('读取文件失败', 'error');
+        };
+        
+    } catch (error) {
+        updateStatus(`错误: ${error.message}`, 'error');
+        console.error('文件拖拽错误:', error);
+        alert(`加载文件时发生错误: ${error.message}`);
+    }
+}
